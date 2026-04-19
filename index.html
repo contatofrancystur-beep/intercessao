@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4a3f8c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Intercessão</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --purple: #4a3f8c;
+    --purple-light: #6c5fc7;
+    --purple-bg: #f0eeff;
+    --green: #1D9E75;
+    --green-bg: #e1f5ee;
+    --amber: #BA7517;
+    --amber-bg: #faeeda;
+    --red: #c0392b;
+    --red-bg: #fdecea;
+    --gray: #73726c;
+    --gray-bg: #f1efe8;
+    --text: #2c2c2a;
+    --text-muted: #73726c;
+    --border: #e0ddd8;
+    --bg: #f8f7f4;
+    --white: #ffffff;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  
+  /* HEADER */
+  .header { background: var(--purple); padding: 16px 20px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header-title { color: #fff; font-size: 17px; font-weight: 600; }
+  .header-sub { color: rgba(255,255,255,0.7); font-size: 11px; margin-top: 1px; }
+  .header-user { background: rgba(255,255,255,0.2); color: #fff; border: none; border-radius: 20px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+
+  /* BOTTOM NAV */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); border-top: 1px solid var(--border); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 4px 8px; cursor: pointer; gap: 3px; border: none; background: none; }
+  .nav-item .nav-icon { font-size: 20px; }
+  .nav-item .nav-label { font-size: 10px; color: var(--text-muted); }
+  .nav-item.active .nav-label { color: var(--purple); font-weight: 600; }
+  .nav-item.active .nav-icon { filter: none; }
+
+  /* PAGES */
+  .page { display: none; padding: 16px 16px 90px; max-width: 600px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* LOGIN */
+  .login-page { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px 24px; }
+  .login-logo { width: 80px; height: 80px; background: var(--purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; margin-bottom: 24px; }
+  .login-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 6px; text-align: center; }
+  .login-sub { font-size: 14px; color: var(--text-muted); text-align: center; margin-bottom: 32px; }
+  .login-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 24px; width: 100%; max-width: 360px; }
+  .form-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 11px 14px; font-size: 15px; color: var(--text); background: var(--bg); outline: none; transition: border-color 0.2s; }
+  .form-input:focus { border-color: var(--purple); }
+  .btn-primary { width: 100%; background: var(--purple); color: #fff; border: none; border-radius: var(--radius-sm); padding: 13px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 14px; transition: opacity 0.2s; }
+  .btn-primary:active { opacity: 0.85; }
+  .login-error { color: var(--red); font-size: 13px; text-align: center; margin-top: 10px; display: none; }
+
+  /* CARDS */
+  .card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 10px; }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .card-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .card-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .card-body { font-size: 14px; color: var(--text); line-height: 1.5; margin-top: 8px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; margin-top: 8px; }
+  .badge-prayer { background: var(--purple-bg); color: var(--purple); }
+  .badge-testimony { background: var(--green-bg); color: var(--green); }
+  .badge-event { background: #E6F1FB; color: #0C447C; }
+  .badge-scale { background: var(--amber-bg); color: var(--amber); }
+  .card-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .btn-delete { background: none; border: 1px solid var(--border); color: var(--red); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; cursor: pointer; }
+  .btn-approve { background: none; border: 1px solid var(--green); color: var(--green); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; cursor: pointer; }
+
+  /* FAB */
+  .fab { position: fixed; bottom: 80px; right: 20px; width: 54px; height: 54px; background: var(--purple); border-radius: 50%; border: none; color: #fff; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 99; box-shadow: 0 2px 12px rgba(74,63,140,0.35); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 20px 20px 0 0; padding: 24px 20px 40px; width: 100%; max-height: 90vh; overflow-y: auto; }
+  .modal-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 18px; }
+  .modal-close { float: right; background: var(--gray-bg); border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .form-group { margin-bottom: 14px; }
+  textarea.form-input { min-height: 90px; resize: vertical; font-family: inherit; }
+  .btn-secondary { width: 100%; background: none; color: var(--text-muted); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 14px; cursor: pointer; margin-top: 8px; }
+
+  /* PAGE TITLES */
+  .page-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 20px 0 10px; }
+
+  /* SCALE */
+  .scale-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-bottom: 10px; }
+  .scale-header { background: var(--purple); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+  .scale-date { color: #fff; font-size: 13px; font-weight: 600; }
+  .scale-day { color: rgba(255,255,255,0.75); font-size: 12px; }
+  .scale-body { padding: 12px 14px; }
+  .scale-period { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
+  .scale-tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; min-width: 50px; text-align: center; }
+  .tag-manha { background: var(--amber-bg); color: var(--amber); }
+  .tag-noite { background: var(--purple-bg); color: var(--purple); }
+  .scale-names { font-size: 13px; color: var(--text); }
+
+  /* EVENTS */
+  .event-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 10px; display: flex; gap: 14px; align-items: flex-start; }
+  .event-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .event-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .event-date { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .event-desc { font-size: 13px; color: var(--text); margin-top: 6px; line-height: 1.4; }
+
+  /* MEMBERS */
+  .member-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 12px 14px; margin-bottom: 8px; display: flex; gap: 12px; align-items: center; }
+  .member-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--purple-bg); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--purple); flex-shrink: 0; }
+  .member-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .member-role { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 40px 20px; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { color: var(--text-muted); font-size: 14px; }
+
+  /* ADMIN BADGE */
+  .admin-only { display: none; }
+  body.is-admin .admin-only { display: flex; }
+  body.is-admin .admin-only-block { display: block; }
+  .admin-only-block { display: none; }
+
+  /* COUNTS */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--purple); }
+  .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* PENDING */
+  .pending-badge { background: var(--red-bg); color: var(--red); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .tab-bar { display: flex; background: var(--gray-bg); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 16px; }
+  .tab-btn { flex: 1; padding: 7px; border: none; background: none; border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text-muted); font-weight: 500; }
+  .tab-btn.active { background: var(--white); color: var(--purple); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .sub-page { display: none; }
+  .sub-page.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-page" id="loginPage">
+  <div class="login-logo">🙏</div>
+  <h1 class="login-title">Ministério de Intercessão</h1>
+  <p class="login-sub">Entre com a senha do grupo para acessar</p>
+  <div class="login-card">
+    <div class="form-group">
+      <label class="form-label">Senha do grupo</label>
+      <input class="form-input" type="password" id="loginPassword" placeholder="Digite a senha..." onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    <p class="login-error" id="loginError">Senha incorreta. Tente novamente.</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+  <div class="header">
+    <div>
+      <div class="header-title">🙏 Intercessão</div>
+      <div class="header-sub" id="headerSub">Ministério de Intercessão</div>
+    </div>
+    <button class="header-user" onclick="doLogout()" id="headerBtn">Sair</button>
+  </div>
+
+  <!-- PAGES -->
+  <div class="page active" id="page-home">
+    <p class="page-title">Olá, intercessor! 👋</p>
+    <p class="page-sub">Bem-vindo ao hub do ministério.</p>
+    <div class="stats">
+      <div class="stat-card"><div class="stat-num" id="countPrayer">0</div><div class="stat-label">Em oração</div></div>
+      <div class="stat-card"><div class="stat-num" id="countTestimony">0</div><div class="stat-label">Testemunhos</div></div>
+    </div>
+    <div class="section-title">Próximos eventos</div>
+    <div id="homeEvents"></div>
+  </div>
+
+  <div class="page" id="page-prayer">
+    <p class="page-title">Pedidos de Oração</p>
+    <p class="page-sub">Adicione nomes e situações para orar.</p>
+    <div id="prayerList"></div>
+  </div>
+
+  <div class="page" id="page-testimony">
+    <p class="page-title">Testemunhos</p>
+    <p class="page-sub">Milagres e respostas de oração.</p>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="filterTestimonies('approved', this)">Publicados</button>
+      <button class="tab-btn admin-only" onclick="filterTestimonies('pending', this)">Aguardando <span class="pending-badge" id="pendingCount">0</span></button>
+    </div>
+    <div id="testimonyList"></div>
+  </div>
+
+  <div class="page" id="page-scale">
+    <p class="page-title">Escala de Intercessores</p>
+    <p class="page-sub">Cultos e equipes escaladas.</p>
+    <div id="scaleList"></div>
+  </div>
+
+  <div class="page" id="page-events">
+    <p class="page-title">Eventos e Vigílias</p>
+    <p class="page-sub">Calendário do ministério.</p>
+    <div id="eventList"></div>
+  </div>
+
+  <div class="page" id="page-admin">
+    <p class="page-title">Painel Admin</p>
+    <p class="page-sub">Gerenciamento do ministério.</p>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showAdminTab('members', this)">Membros</button>
+      <button class="tab-btn" onclick="showAdminTab('scale-admin', this)">Escala</button>
+      <button class="tab-btn" onclick="showAdminTab('events-admin', this)">Eventos</button>
+    </div>
+    <div class="sub-page active" id="admin-members">
+      <button class="btn-primary" style="margin-bottom:16px" onclick="openModal('modalAddMember')">+ Cadastrar intercessor</button>
+      <div id="memberList"></div>
+    </div>
+    <div class="sub-page" id="admin-scale-admin">
+      <button class="btn-primary" style="margin-bottom:16px" onclick="openModal('modalAddScale')">+ Adicionar escala</button>
+      <div id="scaleAdminList"></div>
+    </div>
+    <div class="sub-page" id="admin-events-admin">
+      <button class="btn-primary" style="margin-bottom:16px" onclick="openModal('modalAddEvent')">+ Adicionar evento</button>
+      <div id="eventsAdminList"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="showPage('home', this)"><span class="nav-icon">🏠</span><span class="nav-label">Início</span></button>
+    <button class="nav-item" onclick="showPage('prayer', this)"><span class="nav-icon">🙏</span><span class="nav-label">Oração</span></button>
+    <button class="nav-item" onclick="showPage('testimony', this)"><span class="nav-icon">✨</span><span class="nav-label">Testemunhos</span></button>
+    <button class="nav-item" onclick="showPage('scale', this)"><span class="nav-icon">📋</span><span class="nav-label">Escala</span></button>
+    <button class="nav-item" onclick="showPage('events', this)"><span class="nav-icon">🗓️</span><span class="nav-label">Eventos</span></button>
+    <button class="nav-item admin-only" onclick="showPage('admin', this)"><span class="nav-icon">⚙️</span><span class="nav-label">Admin</span></button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" id="fab" onclick="openFab()">+</button>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modalAddPrayer">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalAddPrayer')">✕</button>
+    <p class="modal-title">Novo pedido de oração</p>
+    <div class="form-group"><label class="form-label">Nome da pessoa</label><input class="form-input" id="prayerName" placeholder="Ex: Maria Silva"></div>
+    <div class="form-group"><label class="form-label">Motivo / situação</label><textarea class="form-input" id="prayerDesc" placeholder="Descreva o pedido de oração..."></textarea></div>
+    <button class="btn-primary" onclick="addPrayer()">Enviar pedido</button>
+    <button class="btn-secondary" onclick="closeModal('modalAddPrayer')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalAddTestimony">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalAddTestimony')">✕</button>
+    <p class="modal-title">Registrar testemunho</p>
+    <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="testimonyTitle" placeholder="Ex: Cura de diabetes"></div>
+    <div class="form-group"><label class="form-label">Categoria</label>
+      <select class="form-input" id="testimonyCategory">
+        <option value="Cura">Cura</option>
+        <option value="Milagre financeiro">Milagre financeiro</option>
+        <option value="Restauração familiar">Restauração familiar</option>
+        <option value="Libertação">Libertação</option>
+        <option value="Resposta de oração">Resposta de oração</option>
+        <option value="Outro">Outro</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Conta o que aconteceu</label><textarea class="form-input" id="testimonyBody" placeholder="Escreva o testemunho aqui..."></textarea></div>
+    <button class="btn-primary" onclick="addTestimony()">Enviar testemunho</button>
+    <button class="btn-secondary" onclick="closeModal('modalAddTestimony')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalAddMember">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalAddMember')">✕</button>
+    <p class="modal-title">Cadastrar intercessor</p>
+    <div class="form-group"><label class="form-label">Nome completo</label><input class="form-input" id="memberName" placeholder="Nome do intercessor"></div>
+    <div class="form-group"><label class="form-label">Função</label>
+      <select class="form-input" id="memberRole">
+        <option value="Intercessor">Intercessor</option>
+        <option value="Líder">Líder</option>
+        <option value="Pastor">Pastor</option>
+        <option value="Coordenador">Coordenador</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="addMember()">Cadastrar</button>
+    <button class="btn-secondary" onclick="closeModal('modalAddMember')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalAddScale">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalAddScale')">✕</button>
+    <p class="modal-title">Adicionar escala</p>
+    <div class="form-group"><label class="form-label">Data</label><input class="form-input" type="date" id="scaleDate"></div>
+    <div class="form-group"><label class="form-label">Dia da semana</label>
+      <select class="form-input" id="scaleDay">
+        <option>Domingo</option><option>Quarta-feira</option><option>Sábado</option><option>Outro</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Período</label>
+      <select class="form-input" id="scalePeriod">
+        <option value="manha">Manhã</option><option value="noite">Noite</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Intercessores escalados</label><input class="form-input" id="scaleNames" placeholder="Ex: Josy, Eduardo, Miriam"></div>
+    <button class="btn-primary" onclick="addScale()">Salvar escala</button>
+    <button class="btn-secondary" onclick="closeModal('modalAddScale')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalAddEvent">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalAddEvent')">✕</button>
+    <p class="modal-title">Adicionar evento</p>
+    <div class="form-group"><label class="form-label">Nome do evento</label><input class="form-input" id="eventName" placeholder="Ex: Vigília de Oração"></div>
+    <div class="form-group"><label class="form-label">Data e horário</label><input class="form-input" id="eventDate" placeholder="Ex: 24 de maio — 22h"></div>
+    <div class="form-group"><label class="form-label">Tipo</label>
+      <select class="form-input" id="eventType">
+        <option value="vigilia">Vigília</option>
+        <option value="reuniao">Reunião mensal</option>
+        <option value="treinamento">Treinamento</option>
+        <option value="evento">Evento anual</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Descrição (opcional)</label><textarea class="form-input" id="eventDesc" placeholder="Informações adicionais..."></textarea></div>
+    <button class="btn-primary" onclick="addEvent()">Salvar evento</button>
+    <button class="btn-secondary" onclick="closeModal('modalAddEvent')">Cancelar</button>
+  </div>
+</div>
+
+<script>
+const MEMBER_PASSWORD = 'intercessao2026';
+const ADMIN_PASSWORD = 'admin2026';
+
+const COLORS = { vigilia: '#4a3f8c', reuniao: '#1D9E75', treinamento: '#BA7517', evento: '#D85A30' };
+
+let currentPage = 'home';
+let testimonyFilter = 'approved';
+
+function getDB(key, def) {
+  try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
+}
+function setDB(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+function initData() {
+  if (!localStorage.getItem('members')) {
+    setDB('members', [
+      {id:1, name:'Josy', role:'Líder'}, {id:2, name:'Eduardo', role:'Intercessor'}, {id:3, name:'Juliana', role:'Intercessor'},
+      {id:4, name:'Lais', role:'Intercessor'}, {id:5, name:'Aldimar', role:'Intercessor'}, {id:6, name:'Gilnei', role:'Intercessor'},
+      {id:7, name:'Bruna', role:'Intercessor'}, {id:8, name:'Junior', role:'Intercessor'}, {id:9, name:'Nereide', role:'Intercessor'},
+      {id:10, name:'Miriam', role:'Intercessor'}, {id:11, name:'Roxane', role:'Intercessor'}, {id:12, name:'Franco', role:'Intercessor'},
+      {id:13, name:'Suelen', role:'Intercessor'}, {id:14, name:'Richeli', role:'Intercessor'}, {id:15, name:'Cleidir', role:'Intercessor'},
+      {id:16, name:'Lene', role:'Intercessor'}, {id:17, name:'Ronaldo', role:'Intercessor'}, {id:18, name:'Karla', role:'Intercessor'},
+      {id:19, name:'André', role:'Intercessor'}, {id:20, name:'Sara', role:'Intercessor'}, {id:21, name:'Jonatas', role:'Intercessor'},
+      {id:22, name:'Daniela', role:'Intercessor'}, {id:23, name:'Leonardo', role:'Intercessor'}, {id:24, name:'Daniel', role:'Intercessor'},
+      {id:25, name:'Neide', role:'Intercessor'}, {id:26, name:'Geneci', role:'Intercessor'}, {id:27, name:'Brenda', role:'Intercessor'},
+      {id:28, name:'Moises', role:'Intercessor'}, {id:29, name:'Jonathas', role:'Intercessor'}, {id:30, name:'Lene', role:'Intercessor'}
+    ]);
+  }
+  if (!localStorage.getItem('scales')) {
+    setDB('scales', [
+      {id:1, date:'19/04/2026', day:'Domingo', period:'manha', names:'Roxane, Franco'},
+      {id:2, date:'19/04/2026', day:'Domingo', period:'noite', names:'Josy, Jonathas, Eduardo, Geneci'},
+      {id:3, date:'22/04/2026', day:'Quarta-feira', period:'noite', names:'Lais, Juliana, Brenda, Moises'},
+      {id:4, date:'26/04/2026', day:'Domingo', period:'manha', names:'Suelen, Gilnei, Junior'},
+      {id:5, date:'26/04/2026', day:'Domingo', period:'noite', names:'Bruna, Josy, Eduardo, Miriam'},
+      {id:6, date:'29/04/2026', day:'Quarta-feira', period:'noite', names:'Richeli, Cleidir'},
+      {id:7, date:'03/05/2026', day:'Domingo', period:'manha', names:'Aldimar, Josy, Nereide'},
+      {id:8, date:'03/05/2026', day:'Domingo', period:'noite', names:'Lene, Ronaldo, Gilnei'},
+      {id:9, date:'06/05/2026', day:'Quarta-feira', period:'noite', names:'Lais, Juliana, Karla'},
+      {id:10, date:'10/05/2026', day:'Domingo', period:'manha', names:'André, Sara, Junior, Jonatas'},
+      {id:11, date:'10/05/2026', day:'Domingo', period:'noite', names:'Daniela, Leonardo'},
+      {id:12, date:'13/05/2026', day:'Quarta-feira', period:'noite', names:'Daniel, Neide, Bruna'}
+    ]);
+  }
+  if (!localStorage.getItem('events')) {
+    setDB('events', [
+      {id:1, name:'Vigília de Oração', date:'24 de maio — 22h', type:'vigilia', desc:'Venha interceder pela cidade e pela igreja.'},
+      {id:2, name:'Reunião mensal de alinhamento', date:'31 de maio — 19h', type:'reuniao', desc:'Reunião da equipe de intercessão.'},
+      {id:3, name:'Treinamento de intercessores', date:'07 de junho — 14h', type:'treinamento', desc:'Formação e capacitação dos intercessores.'},
+      {id:4, name:'Semana de Oração Anual', date:'15 a 20 de agosto', type:'evento', desc:'Evento anual de intercessão da igreja.'}
+    ]);
+  }
+  if (!localStorage.getItem('prayers')) setDB('prayers', []);
+  if (!localStorage.getItem('testimonies')) setDB('testimonies', []);
+}
+
+function doLogin() {
+  const pw = document.getElementById('loginPassword').value;
+  const err = document.getElementById('loginError');
+  if (pw === ADMIN_PASSWORD) {
+    document.body.classList.add('is-admin');
+    sessionStorage.setItem('role', 'admin');
+    document.getElementById('headerBtn').textContent = 'Admin | Sair';
+    startApp();
+  } else if (pw === MEMBER_PASSWORD) {
+    sessionStorage.setItem('role', 'member');
+    startApp();
+  } else {
+    err.style.display = 'block';
+    setTimeout(() => err.style.display = 'none', 3000);
+  }
+}
+
+function startApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  renderAll();
+}
+
+function doLogout() {
+  sessionStorage.clear();
+  document.body.classList.remove('is-admin');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('loginPassword').value = '';
+}
+
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  currentPage = name;
+  const fab = document.getElementById('fab');
+  fab.style.display = ['prayer','testimony'].includes(name) ? 'flex' : 'none';
+  if (name === 'home') renderHome();
+}
+
+function openFab() {
+  if (currentPage === 'prayer') openModal('modalAddPrayer');
+  else if (currentPage === 'testimony') openModal('modalAddTestimony');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function renderAll() {
+  renderHome(); renderPrayers(); renderTestimonies(); renderScale(); renderEvents();
+  renderMembers(); renderScaleAdmin(); renderEventsAdmin();
+  document.getElementById('fab').style.display = 'none';
+}
+
+function renderHome() {
+  const prayers = getDB('prayers', []);
+  const testimonies = getDB('testimonies', []).filter(t => t.status === 'approved');
+  document.getElementById('countPrayer').textContent = prayers.length;
+  document.getElementById('countTestimony').textContent = testimonies.length;
+  const events = getDB('events', []).slice(0, 3);
+  const el = document.getElementById('homeEvents');
+  if (!events.length) { el.innerHTML = '<div class="empty"><div class="empty-text">Nenhum evento cadastrado.</div></div>'; return; }
+  el.innerHTML = events.map(e => `
+    <div class="event-card">
+      <div class="event-dot" style="background:${COLORS[e.type]||'#4a3f8c'}"></div>
+      <div><div class="event-name">${e.name}</div><div class="event-date">${e.date}</div></div>
+    </div>`).join('');
+}
+
+function renderPrayers() {
+  const list = getDB('prayers', []);
+  const el = document.getElementById('prayerList');
+  const isAdmin = document.body.classList.contains('is-admin');
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🙏</div><div class="empty-text">Nenhum pedido ainda.<br>Seja o primeiro a adicionar!</div></div>'; return; }
+  el.innerHTML = list.map(p => `
+    <div class="card">
+      <div class="card-header"><div><div class="card-name">${p.name}</div><div class="card-meta">Adicionado em ${p.date}</div></div></div>
+      <div class="card-body">${p.desc}</div>
+      <span class="badge badge-prayer">Em oração</span>
+      ${isAdmin ? `<div class="card-actions"><button class="btn-delete" onclick="deletePrayer(${p.id})">Remover</button></div>` : ''}
+    </div>`).join('');
+}
+
+function renderTestimonies(filter) {
+  if (filter) testimonyFilter = filter;
+  const all = getDB('testimonies', []);
+  const list = all.filter(t => testimonyFilter === 'approved' ? t.status === 'approved' : t.status === 'pending');
+  const el = document.getElementById('testimonyList');
+  const isAdmin = document.body.classList.contains('is-admin');
+  const pending = all.filter(t => t.status === 'pending').length;
+  const pb = document.getElementById('pendingCount');
+  if (pb) pb.textContent = pending;
+  if (!list.length) { el.innerHTML = `<div class="empty"><div class="empty-icon">✨</div><div class="empty-text">${testimonyFilter === 'approved' ? 'Nenhum testemunho publicado ainda.' : 'Nenhum testemunho aguardando aprovação.'}</div></div>`; return; }
+  el.innerHTML = list.map(t => `
+    <div class="card">
+      <div class="card-header"><div class="card-name">${t.title}</div></div>
+      <div class="card-body">${t.body}</div>
+      <span class="badge badge-testimony">${t.category}</span>
+      ${isAdmin ? `<div class="card-actions">
+        ${t.status === 'pending' ? `<button class="btn-approve" onclick="approveTestimony(${t.id})">Publicar</button>` : ''}
+        <button class="btn-delete" onclick="deleteTestimony(${t.id})">Remover</button>
+      </div>` : ''}
+    </div>`).join('');
+}
+
+function filterTestimonies(filter, el) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTestimonies(filter);
+}
+
+function renderScale() {
+  const list = getDB('scales', []);
+  const el = document.getElementById('scaleList');
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">Nenhuma escala cadastrada.</div></div>'; return; }
+  const grouped = {};
+  list.forEach(s => { if (!grouped[s.date]) grouped[s.date] = {day: s.day, items:[]}; grouped[s.date].items.push(s); });
+  el.innerHTML = Object.entries(grouped).map(([date, g]) => `
+    <div class="scale-card">
+      <div class="scale-header"><div class="scale-date">${date}</div><div class="scale-day">${g.day}</div></div>
+      <div class="scale-body">${g.items.map(s => `
+        <div class="scale-period">
+          <span class="scale-tag ${s.period === 'manha' ? 'tag-manha' : 'tag-noite'}">${s.period === 'manha' ? 'Manhã' : 'Noite'}</span>
+          <span class="scale-names">${s.names}</span>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function renderEvents() {
+  const list = getDB('events', []);
+  const el = document.getElementById('eventList');
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">Nenhum evento cadastrado.</div></div>'; return; }
+  el.innerHTML = list.map(e => `
+    <div class="event-card">
+      <div class="event-dot" style="background:${COLORS[e.type]||'#4a3f8c'}"></div>
+      <div style="flex:1">
+        <div class="event-name">${e.name}</div>
+        <div class="event-date">${e.date}</div>
+        ${e.desc ? `<div class="event-desc">${e.desc}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function renderMembers() {
+  const list = getDB('members', []);
+  const el = document.getElementById('memberList');
+  el.innerHTML = list.map(m => `
+    <div class="member-card">
+      <div class="member-avatar">${m.name.slice(0,2).toUpperCase()}</div>
+      <div style="flex:1"><div class="member-name">${m.name}</div><div class="member-role">${m.role}</div></div>
+      <button class="btn-delete" onclick="deleteMember(${m.id})">Remover</button>
+    </div>`).join('');
+}
+
+function renderScaleAdmin() {
+  const list = getDB('scales', []);
+  const el = document.getElementById('scaleAdminList');
+  el.innerHTML = list.map(s => `
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+      <div><div class="card-name">${s.date} — ${s.period === 'manha' ? 'Manhã' : 'Noite'}</div><div class="card-meta">${s.names}</div></div>
+      <button class="btn-delete" onclick="deleteScale(${s.id})">Remover</button>
+    </div>`).join('');
+}
+
+function renderEventsAdmin() {
+  const list = getDB('events', []);
+  const el = document.getElementById('eventsAdminList');
+  el.innerHTML = list.map(e => `
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+      <div><div class="card-name">${e.name}</div><div class="card-meta">${e.date}</div></div>
+      <button class="btn-delete" onclick="deleteEvent(${e.id})">Remover</button>
+    </div>`).join('');
+}
+
+function addPrayer() {
+  const name = document.getElementById('prayerName').value.trim();
+  const desc = document.getElementById('prayerDesc').value.trim();
+  if (!name || !desc) return alert('Preencha todos os campos.');
+  const list = getDB('prayers', []);
+  list.unshift({id: Date.now(), name, desc, date: new Date().toLocaleDateString('pt-BR')});
+  setDB('prayers', list);
+  document.getElementById('prayerName').value = '';
+  document.getElementById('prayerDesc').value = '';
+  closeModal('modalAddPrayer');
+  renderPrayers(); renderHome();
+}
+
+function addTestimony() {
+  const title = document.getElementById('testimonyTitle').value.trim();
+  const category = document.getElementById('testimonyCategory').value;
+  const body = document.getElementById('testimonyBody').value.trim();
+  if (!title || !body) return alert('Preencha todos os campos.');
+  const list = getDB('testimonies', []);
+  const isAdmin = document.body.classList.contains('is-admin');
+  list.unshift({id: Date.now(), title, category, body, status: isAdmin ? 'approved' : 'pending', date: new Date().toLocaleDateString('pt-BR')});
+  setDB('testimonies', list);
+  document.getElementById('testimonyTitle').value = '';
+  document.getElementById('testimonyBody').value = '';
+  closeModal('modalAddTestimony');
+  renderTestimonies(); renderHome();
+  if (!isAdmin) alert('Testemunho enviado! Aguardando aprovação do líder.');
+}
+
+function addMember() {
+  const name = document.getElementById('memberName').value.trim();
+  const role = document.getElementById('memberRole').value;
+  if (!name) return alert('Digite o nome.');
+  const list = getDB('members', []);
+  list.push({id: Date.now(), name, role});
+  setDB('members', list);
+  document.getElementById('memberName').value = '';
+  closeModal('modalAddMember');
+  renderMembers();
+}
+
+function addScale() {
+  const date = document.getElementById('scaleDate').value;
+  const day = document.getElementById('scaleDay').value;
+  const period = document.getElementById('scalePeriod').value;
+  const names = document.getElementById('scaleNames').value.trim();
+  if (!date || !names) return alert('Preencha data e intercessores.');
+  const [y,m,d] = date.split('-');
+  const list = getDB('scales', []);
+  list.push({id: Date.now(), date:`${d}/${m}/${y}`, day, period, names});
+  list.sort((a,b) => a.date.split('/').reverse().join('').localeCompare(b.date.split('/').reverse().join('')));
+  setDB('scales', list);
+  document.getElementById('scaleNames').value = '';
+  closeModal('modalAddScale');
+  renderScale(); renderScaleAdmin();
+}
+
+function addEvent() {
+  const name = document.getElementById('eventName').value.trim();
+  const date = document.getElementById('eventDate').value.trim();
+  const type = document.getElementById('eventType').value;
+  const desc = document.getElementById('eventDesc').value.trim();
+  if (!name || !date) return alert('Preencha nome e data.');
+  const list = getDB('events', []);
+  list.push({id: Date.now(), name, date, type, desc});
+  setDB('events', list);
+  document.getElementById('eventName').value = '';
+  document.getElementById('eventDate').value = '';
+  document.getElementById('eventDesc').value = '';
+  closeModal('modalAddEvent');
+  renderEvents(); renderEventsAdmin(); renderHome();
+}
+
+function deletePrayer(id) { if(!confirm('Remover este pedido?')) return; setDB('prayers', getDB('prayers',[]).filter(p=>p.id!==id)); renderPrayers(); renderHome(); }
+function deleteTestimony(id) { if(!confirm('Remover este testemunho?')) return; setDB('testimonies', getDB('testimonies',[]).filter(t=>t.id!==id)); renderTestimonies(); renderHome(); }
+function deleteMember(id) { if(!confirm('Remover este intercessor?')) return; setDB('members', getDB('members',[]).filter(m=>m.id!==id)); renderMembers(); }
+function deleteScale(id) { if(!confirm('Remover esta escala?')) return; setDB('scales', getDB('scales',[]).filter(s=>s.id!==id)); renderScale(); renderScaleAdmin(); }
+function deleteEvent(id) { if(!confirm('Remover este evento?')) return; setDB('events', getDB('events',[]).filter(e=>e.id!==id)); renderEvents(); renderEventsAdmin(); renderHome(); }
+function approveTestimony(id) { const list = getDB('testimonies',[]); const t = list.find(t=>t.id===id); if(t) t.status='approved'; setDB('testimonies',list); renderTestimonies(); renderHome(); }
+
+function showAdminTab(tab, el) {
+  document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#page-admin .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('admin-' + tab).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
+});
+
+initData();
+
+if (sessionStorage.getItem('role') === 'admin') {
+  document.body.classList.add('is-admin');
+  startApp();
+} else if (sessionStorage.getItem('role') === 'member') {
+  startApp();
+}
+</script>
+</body>
+</html>
