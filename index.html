@@ -79,6 +79,7 @@
   .card-actions { display: flex; gap: 8px; margin-top: 10px; }
   .btn-delete { background: none; border: 1px solid var(--border); color: var(--red); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; cursor: pointer; }
   .btn-approve { background: none; border: 1px solid var(--green); color: var(--green); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; cursor: pointer; }
+  .btn-edit { background: none; border: 1px solid var(--border); color: var(--purple); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; cursor: pointer; }
 
   /* FAB */
   .fab { position: fixed; bottom: 24px; right: 20px; width: 54px; height: 54px; background: var(--purple); border-radius: 50%; border: none; color: #fff; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 99; box-shadow: 0 2px 12px rgba(74,63,140,0.35); }
@@ -462,7 +463,7 @@ function renderHome() {
   const testimonies = getDB('testimonies', []).filter(t => t.status === 'approved');
   document.getElementById('countPrayer').textContent = prayers.length;
   document.getElementById('countTestimony').textContent = testimonies.length;
-  const events = getDB('events', []).slice(0, 3);
+  const events = sortedEvents().slice(0, 3);
   const el = document.getElementById('homeEvents');
   if (!events.length) { el.innerHTML = '<div class="empty"><div class="empty-text">Nenhum evento cadastrado.</div></div>'; return; }
   el.innerHTML = events.map(e => `
@@ -482,7 +483,7 @@ function renderPrayers() {
       <div class="card-header"><div><div class="card-name">${p.name}</div><div class="card-meta">Adicionado em ${p.date}</div></div></div>
       <div class="card-body">${p.desc}</div>
       <span class="badge badge-prayer">Em oração</span>
-      ${isAdmin ? `<div class="card-actions"><button class="btn-delete" onclick="deletePrayer(${p.id})">Remover</button></div>` : ''}
+      ${isAdmin ? `<div class="card-actions"><button class="btn-edit" onclick="openEditPrayer(${p.id})">Editar</button><button class="btn-delete" onclick="deletePrayer(${p.id})">Remover</button></div>` : ''}
     </div>`).join('');
 }
 
@@ -503,6 +504,7 @@ function renderTestimonies(filter) {
       <span class="badge badge-testimony">${t.category}</span>
       ${isAdmin ? `<div class="card-actions">
         ${t.status === 'pending' ? `<button class="btn-approve" onclick="approveTestimony(${t.id})">Publicar</button>` : ''}
+        <button class="btn-edit" onclick="openEditTestimony(${t.id})">Editar</button>
         <button class="btn-delete" onclick="deleteTestimony(${t.id})">Remover</button>
       </div>` : ''}
     </div>`).join('');
@@ -532,8 +534,25 @@ function renderScale() {
     </div>`).join('');
 }
 
+function parseEventDate(dateStr) {
+  if (!dateStr) return new Date(9999,0,1);
+  const months = {jan:0,fev:1,mar:2,abr:3,mai:4,jun:5,jul:6,ago:7,set:8,out:9,nov:10,dez:11};
+  const s = dateStr.toLowerCase();
+  const ddmm = s.match(/(\d{1,2})[\/\-_](\d{1,2})/);
+  if (ddmm) return new Date(new Date().getFullYear(), parseInt(ddmm[2])-1, parseInt(ddmm[1]));
+  const named = s.match(/(\d{1,2})\s+de\s+([a-zç]+)/);
+  if (named) { const m = months[named[2].slice(0,3)]; return new Date(new Date().getFullYear(), m!==undefined?m:0, parseInt(named[1])); }
+  const monly = Object.keys(months).find(k => s.includes(k));
+  if (monly) { const d = s.match(/\d{1,2}/); return new Date(new Date().getFullYear(), months[monly], d?parseInt(d[0]):1); }
+  return new Date(9999,0,1);
+}
+
+function sortedEvents() {
+  return [...getDB('events', [])].sort((a,b) => parseEventDate(a.date) - parseEventDate(b.date));
+}
+
 function renderEvents() {
-  const list = getDB('events', []);
+  const list = sortedEvents();
   const el = document.getElementById('eventList');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">Nenhum evento cadastrado.</div></div>'; return; }
   el.innerHTML = list.map(e => `
@@ -554,6 +573,7 @@ function renderMembers() {
     <div class="member-card">
       <div class="member-avatar">${m.name.slice(0,2).toUpperCase()}</div>
       <div style="flex:1"><div class="member-name">${m.name}</div><div class="member-role">${m.role}</div></div>
+      <button class="btn-edit" onclick="openEditMember(${m.id})">Editar</button>
       <button class="btn-delete" onclick="deleteMember(${m.id})">Remover</button>
     </div>`).join('');
 }
@@ -562,18 +582,20 @@ function renderScaleAdmin() {
   const list = getDB('scales', []);
   const el = document.getElementById('scaleAdminList');
   el.innerHTML = list.map(s => `
-    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
-      <div><div class="card-name">${s.date} — ${s.period === 'manha' ? 'Manhã' : 'Noite'}</div><div class="card-meta">${s.names}</div></div>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div style="flex:1"><div class="card-name">${s.date} — ${s.period === 'manha' ? 'Manhã' : 'Noite'}</div><div class="card-meta">${s.names}</div></div>
+      <button class="btn-edit" onclick="openEditScale(${s.id})">Editar</button>
       <button class="btn-delete" onclick="deleteScale(${s.id})">Remover</button>
     </div>`).join('');
 }
 
 function renderEventsAdmin() {
-  const list = getDB('events', []);
+  const list = sortedEvents();
   const el = document.getElementById('eventsAdminList');
   el.innerHTML = list.map(e => `
-    <div class="card" style="display:flex;justify-content:space-between;align-items:center">
-      <div><div class="card-name">${e.name}</div><div class="card-meta">${e.date}</div></div>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div style="flex:1"><div class="card-name">${e.name}</div><div class="card-meta">${e.date}</div></div>
+      <button class="btn-edit" onclick="openEditEvent(${e.id})">Editar</button>
       <button class="btn-delete" onclick="deleteEvent(${e.id})">Remover</button>
     </div>`).join('');
 }
@@ -658,6 +680,121 @@ function deleteScale(id) { if(!confirm('Remover esta escala?')) return; setDB('s
 function deleteEvent(id) { if(!confirm('Remover este evento?')) return; setDB('events', getDB('events',[]).filter(e=>e.id!==id)); renderEvents(); renderEventsAdmin(); renderHome(); }
 function approveTestimony(id) { const list = getDB('testimonies',[]); const t = list.find(t=>t.id===id); if(t) t.status='approved'; setDB('testimonies',list); renderTestimonies(); renderHome(); }
 
+let editingId = null;
+
+function openEditPrayer(id) {
+  const item = getDB('prayers',[]).find(p=>p.id===id);
+  if(!item) return;
+  editingId = id;
+  document.getElementById('editPrayerName').value = item.name;
+  document.getElementById('editPrayerDesc').value = item.desc;
+  openModal('modalEditPrayer');
+}
+function saveEditPrayer() {
+  const name = document.getElementById('editPrayerName').value.trim();
+  const desc = document.getElementById('editPrayerDesc').value.trim();
+  if(!name||!desc) return alert('Preencha todos os campos.');
+  const list = getDB('prayers',[]);
+  const i = list.findIndex(p=>p.id===editingId);
+  if(i>=0) { list[i].name=name; list[i].desc=desc; }
+  setDB('prayers',list);
+  closeModal('modalEditPrayer');
+  renderPrayers(); renderHome();
+}
+
+function openEditTestimony(id) {
+  const item = getDB('testimonies',[]).find(t=>t.id===id);
+  if(!item) return;
+  editingId = id;
+  document.getElementById('editTestimonyTitle').value = item.title;
+  document.getElementById('editTestimonyCategory').value = item.category;
+  document.getElementById('editTestimonyBody').value = item.body;
+  openModal('modalEditTestimony');
+}
+function saveEditTestimony() {
+  const title = document.getElementById('editTestimonyTitle').value.trim();
+  const category = document.getElementById('editTestimonyCategory').value;
+  const body = document.getElementById('editTestimonyBody').value.trim();
+  if(!title||!body) return alert('Preencha todos os campos.');
+  const list = getDB('testimonies',[]);
+  const i = list.findIndex(t=>t.id===editingId);
+  if(i>=0) { list[i].title=title; list[i].category=category; list[i].body=body; }
+  setDB('testimonies',list);
+  closeModal('modalEditTestimony');
+  renderTestimonies(); renderHome();
+}
+
+function openEditMember(id) {
+  const item = getDB('members',[]).find(m=>m.id===id);
+  if(!item) return;
+  editingId = id;
+  document.getElementById('editMemberName').value = item.name;
+  document.getElementById('editMemberRole').value = item.role;
+  openModal('modalEditMember');
+}
+function saveEditMember() {
+  const name = document.getElementById('editMemberName').value.trim();
+  const role = document.getElementById('editMemberRole').value;
+  if(!name) return alert('Digite o nome.');
+  const list = getDB('members',[]);
+  const i = list.findIndex(m=>m.id===editingId);
+  if(i>=0) { list[i].name=name; list[i].role=role; }
+  setDB('members',list);
+  closeModal('modalEditMember');
+  renderMembers();
+}
+
+function openEditScale(id) {
+  const item = getDB('scales',[]).find(s=>s.id===id);
+  if(!item) return;
+  editingId = id;
+  const [d,m,y] = item.date.split('/');
+  document.getElementById('editScaleDate').value = `${y}-${m}-${d}`;
+  document.getElementById('editScaleDay').value = item.day;
+  document.getElementById('editScalePeriod').value = item.period;
+  document.getElementById('editScaleNames').value = item.names;
+  openModal('modalEditScale');
+}
+function saveEditScale() {
+  const date = document.getElementById('editScaleDate').value;
+  const day = document.getElementById('editScaleDay').value;
+  const period = document.getElementById('editScalePeriod').value;
+  const names = document.getElementById('editScaleNames').value.trim();
+  if(!date||!names) return alert('Preencha data e intercessores.');
+  const [y,m,d] = date.split('-');
+  const list = getDB('scales',[]);
+  const i = list.findIndex(s=>s.id===editingId);
+  if(i>=0) { list[i].date=`${d}/${m}/${y}`; list[i].day=day; list[i].period=period; list[i].names=names; }
+  list.sort((a,b)=>a.date.split('/').reverse().join('').localeCompare(b.date.split('/').reverse().join('')));
+  setDB('scales',list);
+  closeModal('modalEditScale');
+  renderScale(); renderScaleAdmin();
+}
+
+function openEditEvent(id) {
+  const item = getDB('events',[]).find(e=>e.id===id);
+  if(!item) return;
+  editingId = id;
+  document.getElementById('editEventName').value = item.name;
+  document.getElementById('editEventDate').value = item.date;
+  document.getElementById('editEventType').value = item.type;
+  document.getElementById('editEventDesc').value = item.desc||'';
+  openModal('modalEditEvent');
+}
+function saveEditEvent() {
+  const name = document.getElementById('editEventName').value.trim();
+  const date = document.getElementById('editEventDate').value.trim();
+  const type = document.getElementById('editEventType').value;
+  const desc = document.getElementById('editEventDesc').value.trim();
+  if(!name||!date) return alert('Preencha nome e data.');
+  const list = getDB('events',[]);
+  const i = list.findIndex(e=>e.id===editingId);
+  if(i>=0) { list[i].name=name; list[i].date=date; list[i].type=type; list[i].desc=desc; }
+  setDB('events',list);
+  closeModal('modalEditEvent');
+  renderEvents(); renderEventsAdmin(); renderHome();
+}
+
 function showAdminTab(tab, el) {
   document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('#page-admin .tab-btn').forEach(b => b.classList.remove('active'));
@@ -678,5 +815,97 @@ if (sessionStorage.getItem('role') === 'admin') {
   startApp();
 }
 </script>
+<!-- EDIT MODALS -->
+<div class="modal-overlay" id="modalEditPrayer">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalEditPrayer')">✕</button>
+    <p class="modal-title">Editar pedido de oração</p>
+    <div class="form-group"><label class="form-label">Nome da pessoa</label><input class="form-input" id="editPrayerName"></div>
+    <div class="form-group"><label class="form-label">Motivo / situação</label><textarea class="form-input" id="editPrayerDesc"></textarea></div>
+    <button class="btn-primary" onclick="saveEditPrayer()">Salvar alterações</button>
+    <button class="btn-secondary" onclick="closeModal('modalEditPrayer')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalEditTestimony">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalEditTestimony')">✕</button>
+    <p class="modal-title">Editar testemunho</p>
+    <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="editTestimonyTitle"></div>
+    <div class="form-group"><label class="form-label">Categoria</label>
+      <select class="form-input" id="editTestimonyCategory">
+        <option value="Cura">Cura</option>
+        <option value="Milagre financeiro">Milagre financeiro</option>
+        <option value="Restauração familiar">Restauração familiar</option>
+        <option value="Libertação">Libertação</option>
+        <option value="Resposta de oração">Resposta de oração</option>
+        <option value="Outro">Outro</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Testemunho</label><textarea class="form-input" id="editTestimonyBody"></textarea></div>
+    <button class="btn-primary" onclick="saveEditTestimony()">Salvar alterações</button>
+    <button class="btn-secondary" onclick="closeModal('modalEditTestimony')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalEditMember">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalEditMember')">✕</button>
+    <p class="modal-title">Editar intercessor</p>
+    <div class="form-group"><label class="form-label">Nome completo</label><input class="form-input" id="editMemberName"></div>
+    <div class="form-group"><label class="form-label">Função</label>
+      <select class="form-input" id="editMemberRole">
+        <option value="Intercessor">Intercessor</option>
+        <option value="Líder">Líder</option>
+        <option value="Pastor">Pastor</option>
+        <option value="Coordenador">Coordenador</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="saveEditMember()">Salvar alterações</button>
+    <button class="btn-secondary" onclick="closeModal('modalEditMember')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalEditScale">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalEditScale')">✕</button>
+    <p class="modal-title">Editar escala</p>
+    <div class="form-group"><label class="form-label">Data</label><input class="form-input" type="date" id="editScaleDate"></div>
+    <div class="form-group"><label class="form-label">Dia da semana</label>
+      <select class="form-input" id="editScaleDay">
+        <option>Domingo</option><option>Quarta-feira</option><option>Sábado</option><option>Outro</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Período</label>
+      <select class="form-input" id="editScalePeriod">
+        <option value="manha">Manhã</option><option value="noite">Noite</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Intercessores escalados</label><input class="form-input" id="editScaleNames"></div>
+    <button class="btn-primary" onclick="saveEditScale()">Salvar alterações</button>
+    <button class="btn-secondary" onclick="closeModal('modalEditScale')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalEditEvent">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalEditEvent')">✕</button>
+    <p class="modal-title">Editar evento</p>
+    <div class="form-group"><label class="form-label">Nome do evento</label><input class="form-input" id="editEventName"></div>
+    <div class="form-group"><label class="form-label">Data e horário</label><input class="form-input" id="editEventDate"></div>
+    <div class="form-group"><label class="form-label">Tipo</label>
+      <select class="form-input" id="editEventType">
+        <option value="vigilia">Vigília</option>
+        <option value="reuniao">Reunião mensal</option>
+        <option value="treinamento">Treinamento</option>
+        <option value="evento">Evento anual</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-input" id="editEventDesc"></textarea></div>
+    <button class="btn-primary" onclick="saveEditEvent()">Salvar alterações</button>
+    <button class="btn-secondary" onclick="closeModal('modalEditEvent')">Cancelar</button>
+  </div>
+</div>
+
 </body>
 </html>
